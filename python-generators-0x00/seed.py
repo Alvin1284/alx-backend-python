@@ -16,7 +16,7 @@ def create_database(connection):
     cursor.execute("CREATE DATABASE IF NOT EXISTS ALX_prodev")
     cursor.close()
 
-# Prototype: Connect specifically to the ALX_prodev database
+# Prototype: Connect to the ALX_prodev database
 def connect_to_prodev():
     return mysql.connector.connect(
         host="localhost",
