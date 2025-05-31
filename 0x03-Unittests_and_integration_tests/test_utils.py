@@ -49,11 +49,11 @@ class TestGetJson(unittest.TestCase):
 
     @parameterized.expand([
         ("http://example.com", {"payload": True}),
-        ("http://next.io", {"payload": False}),
+        ("http://holberton.io", {"payload": False}),
     ])
-    def test_get_json(self, test_url: str, test_payload: dict) -> None:
+    def test_get_json(self, test_url: str, test_payload: Dict) -> None:
         """
-        Test get_json returns expected payload from mocked requests.get.
+        Test get_json returns the expected payload from a mocked HTTP request.
         """
         mock_response = Mock()
         mock_response.json.return_value = test_payload
