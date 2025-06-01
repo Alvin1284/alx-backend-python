@@ -133,3 +133,5 @@ REST_FRAMEWORK = {
         # 'rest_framework.permissions.AllowAny',  # Uncomment to allow public access (not recommended)
     ],
 }
+
+AUTH_USER_MODEL = 'chats.User'
