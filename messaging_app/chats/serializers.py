@@ -3,7 +3,9 @@ from rest_framework import serializers
 from .models import User, Conversation, Message
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework.exceptions import ValidationError
+
+# Explicitly import ValidationError from serializers
+from rest_framework.serializers import ValidationError
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -29,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            raise ValidationError("A user with this email already exists.")
+            raise serializers.ValidationError("A user with this email already exists.")
         return value
 
 
@@ -58,9 +60,11 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def validate_message_body(self, value):
         if len(value.strip()) == 0:
-            raise ValidationError("Message cannot be empty")
+            raise serializers.ValidationError("Message cannot be empty")
         if len(value) > 1000:
-            raise ValidationError("Message exceeds maximum length of 1000 characters")
+            raise serializers.ValidationError(
+                "Message exceeds maximum length of 1000 characters"
+            )
         return value
 
 
@@ -102,9 +106,11 @@ class ConversationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         participants = data.get("participants", [])
         if len(participants) < 1:
-            raise ValidationError("Conversation must have at least one participant")
+            raise serializers.ValidationError(
+                "Conversation must have at least one participant"
+            )
         if len(participants) > 20:
-            raise ValidationError("Cannot add more than 20 participants")
+            raise serializers.ValidationError("Cannot add more than 20 participants")
         return data
 
 
@@ -121,10 +127,10 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
         try:
             users = User.objects.filter(user_id__in=value)
             if len(users) != len(value):
-                raise ValidationError("One or more user IDs are invalid")
+                raise serializers.ValidationError("One or more user IDs are invalid")
             return users
         except DjangoValidationError:
-            raise ValidationError("Invalid user ID format")
+            raise serializers.ValidationError("Invalid user ID format")
 
     def create(self, validated_data):
         participants = validated_data.pop("participant_ids")
