@@ -8,7 +8,6 @@ from .serializers import (
     ConversationSerializer,
     ConversationCreateSerializer,
     MessageSerializer,
-    MessageCreateSerializer,
 )
 
 
