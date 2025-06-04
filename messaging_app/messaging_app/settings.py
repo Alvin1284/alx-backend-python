@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt'
     'chats',  # Your app for handling conversations and messages
 ]
 
@@ -134,5 +135,15 @@ REST_FRAMEWORK = {
         # 'rest_framework.permissions.AllowAny',  # Uncomment to allow public access (not recommended)
     ],
 }
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
+
 
 AUTH_USER_MODEL = 'chats.User'

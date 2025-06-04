@@ -4,12 +4,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters import rest_framework as filters
 from .models import Conversation, Message
+from .permissions import IsParticipantOrSender
+
 from .serializers import (
     ConversationSerializer,
     ConversationCreateSerializer,
     MessageSerializer,
 )
-
 
 class MessageFilter(filters.FilterSet):
     conversation = filters.UUIDFilter(field_name="conversation__conversation_id")
@@ -45,7 +46,7 @@ class ConversationFilter(filters.FilterSet):
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsParticipantOrSender]
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = ConversationFilter
 
@@ -95,7 +96,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsParticipantOrSender]
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = MessageFilter
 
