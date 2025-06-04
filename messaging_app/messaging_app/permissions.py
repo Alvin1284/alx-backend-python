@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from .models import Conversation, Message
+from ..chats.models import Conversation, Message
 
 
 class IsParticipantOrSender(permissions.BasePermission):

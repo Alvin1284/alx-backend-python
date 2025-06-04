@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters import rest_framework as filters
 from .models import Conversation, Message
-from .permissions import IsParticipantOrSender
+from ..messaging_app.permissions import IsParticipantOrSender
 
 from .serializers import (
     ConversationSerializer,
