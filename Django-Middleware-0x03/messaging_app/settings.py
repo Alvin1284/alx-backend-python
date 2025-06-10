@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "rest_framework_simplejwt"
     "chats",  # Your app for handling conversations and messages
 ]
 
@@ -50,6 +49,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'chats.middleware.RequestLoggingMiddleware'
 ]
 
 ROOT_URLCONF = "messaging_app.urls"
@@ -130,9 +130,9 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "chats.permissions.IsParticipantOfConversation",  # global permission
-    ),
+    # "DEFAULT_PERMISSION_CLASSES": (
+    #     "chats.permissions.IsParticipantOfConversation",  # global permission
+    
 }
 
 
