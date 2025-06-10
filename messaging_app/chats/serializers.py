@@ -1,8 +1,8 @@
-# chats/serializers.py
 from rest_framework import serializers
 from .models import User, Conversation, Message
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import permissions
 
 # Explicitly import ValidationError from serializers
 from rest_framework.serializers import ValidationError
@@ -137,3 +137,89 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
         conversation = Conversation.objects.create()
         conversation.participants.set(participants)
         return conversation
+
+
+class IsParticipantOfConversation(permissions.BasePermission):
+    """
+    Custom permission to only allow:
+    - Authenticated users
+    - Participants of a conversation to access it
+    - Explicit handling of PUT, PATCH, DELETE methods
+    """
+
+    def has_permission(self, request, view):
+        # Allow only authenticated users
+        if not request.user.is_authenticated:
+            return False
+
+        # For list/create views, check if conversation_id is provided
+        if view.action in ["list", "create"]:
+            conversation_id = request.data.get(
+                "conversation"
+            ) or request.query_params.get("conversation")
+            if conversation_id:
+                from .models import Conversation
+
+                try:
+                    conversation = Conversation.objects.get(pk=conversation_id)
+                    return request.user in conversation.participants.all()
+                except Conversation.DoesNotExist:
+                    return False
+            return True  # Let has_object_permission handle it
+
+        # Explicit check for PUT, PATCH, DELETE
+        if request.method in ["PUT", "PATCH", "DELETE"]:
+            return True  # Delegate to has_object_permission
+
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        # Check if user is a participant of the conversation
+        if request.method in ["GET", "HEAD", "OPTIONS"]:
+            if hasattr(obj, "conversation"):
+                return request.user in obj.conversation.participants.all()
+            elif hasattr(obj, "participants"):
+                return request.user in obj.participants.all()
+
+        # For PUT, PATCH, DELETE - only allow if user is participant
+        elif request.method in ["PUT", "PATCH", "DELETE"]:
+            if hasattr(obj, "conversation"):
+                return request.user in obj.conversation.participants.all()
+            elif hasattr(obj, "participants"):
+                return request.user in obj.participants.all()
+
+        return False
+
+
+class IsMessageOwnerOrParticipant(permissions.BasePermission):
+    """
+    Allow only message owner or conversation participants to:
+    - View, update, or delete messages
+    - Explicit handling of PUT, PATCH, DELETE methods
+    """
+
+    def has_permission(self, request, view):
+        # Allow only authenticated users
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        # For safe methods (GET, HEAD, OPTIONS)
+        if request.method in permissions.SAFE_METHODS:
+            return (
+                obj.sender == request.user
+                or (hasattr(obj, "receiver") and obj.receiver == request.user)
+                or request.user in obj.conversation.participants.all()
+            )
+
+        # For PUT, PATCH - only allow message owner
+        elif request.method in ["PUT", "PATCH"]:
+            return obj.sender == request.user
+
+        # For DELETE - allow message owner or conversation participants
+        elif request.method == "DELETE":
+            return (
+                obj.sender == request.user
+                or request.user in obj.conversation.participants.all()
+            )
+
+        return False
