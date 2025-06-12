@@ -1,58 +1,60 @@
 from rest_framework import permissions
+from django.shortcuts import get_object_or_404
+from .models import Conversation
 
 
 class IsParticipantOfConversation(permissions.BasePermission):
     """
-    Custom permission to only allow:
-    - Authenticated users
-    - Participants of a conversation to access it
+    Custom permission to only allow participants of a conversation to:
+    - Send (POST), view (GET), update (PUT/PATCH), and delete (DELETE) messages
     """
 
     def has_permission(self, request, view):
-        # Allow only authenticated users
         if not request.user.is_authenticated:
             return False
 
-        # For list/create views, check if conversation_id is provided
+        # Handle list/create actions
         if view.action in ["list", "create"]:
             conversation_id = request.data.get(
                 "conversation"
             ) or request.query_params.get("conversation")
             if conversation_id:
-                from .models import Conversation
+                conversation = get_object_or_404(Conversation, pk=conversation_id)
+                return conversation.participants.filter(pk=request.user.pk).exists()
+            return True
 
-                try:
-                    conversation = Conversation.objects.get(pk=conversation_id)
-                    return request.user in conversation.participants.all()
-                except Conversation.DoesNotExist:
-                    return False
-            return True  # Let has_object_permission handle it
+        # Explicitly check for PUT, PATCH, DELETE methods
+        if request.method in ["PUT", "PATCH", "DELETE"]:
+            return True  # Defer to has_object_permission
 
-        return True  # For other actions, let has_object_permission handle it
+        return True
 
     def has_object_permission(self, request, view, obj):
-        # Check if user is a participant of the conversation
+        # Handle all methods (GET, PUT, PATCH, DELETE)
+        if isinstance(obj, Conversation):
+            return obj.participants.filter(pk=request.user.pk).exists()
+
         if hasattr(obj, "conversation"):
-            return request.user in obj.conversation.participants.all()
-        elif hasattr(obj, "participants"):
-            return request.user in obj.participants.all()
+            return obj.conversation.participants.filter(pk=request.user.pk).exists()
+
         return False
 
 
 class IsMessageOwnerOrParticipant(permissions.BasePermission):
     """
     Allow only message owner or conversation participants to:
-    - View, update, or delete messages
+    - View (GET), update (PUT/PATCH), or delete (DELETE) messages
     """
 
     def has_permission(self, request, view):
-        # Allow only authenticated users
         return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        # Allow read/write if user is sender, receiver, or conversation participant
-        is_owner = obj.sender == request.user
-        is_receiver = hasattr(obj, "receiver") and obj.receiver == request.user
-        is_participant = request.user in obj.conversation.participants.all()
-
-        return is_owner or is_receiver or is_participant
+        # Explicitly handle all methods
+        if request.method in permissions.SAFE_METHODS + ("PUT", "PATCH", "DELETE"):
+            if obj.sender == request.user:
+                return True
+            if hasattr(obj, "receiver") and obj.receiver == request.user:
+                return True
+            return obj.conversation.participants.filter(pk=request.user.pk).exists()
+        return False
