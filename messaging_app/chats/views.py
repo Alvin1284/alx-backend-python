@@ -14,7 +14,7 @@ from .serializers import (
 )
 from .filters import MessageFilter, ConversationFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.pagination import PageNumberPagination
+from chats.pagination import MessagePagination
 
 
 class MessageFilter(filters.FilterSet):
@@ -106,7 +106,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         IsParticipantOfConversation,
         IsMessageOwnerOrParticipant,
     ]
-    pagination_class = CustomMessagePagination
+    pagination_class = MessagePagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = MessageFilter
 
