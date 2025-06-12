@@ -4,13 +4,18 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters import rest_framework as filters
 from .models import Conversation, Message
-from .permissions import IsParticipantOrSender
+from .permissions import IsParticipantOfConversation, IsMessageOwnerOrParticipant, IsParticipantOrSender, IsAuthenticated
+from django.http import Http404
 
 from .serializers import (
     ConversationSerializer,
     ConversationCreateSerializer,
     MessageSerializer,
 )
+from .filters import MessageFilter, ConversationFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.pagination import PageNumberPagination
+
 
 class MessageFilter(filters.FilterSet):
     conversation = filters.UUIDFilter(field_name="conversation__conversation_id")
@@ -95,23 +100,54 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
 
 class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all()
-    permission_classes = [permissions.IsAuthenticated, IsParticipantOrSender]
-    filter_backends = (filters.DjangoFilterBackend,)
+    serializer_class = MessageSerializer
+    permission_classes = [
+        IsAuthenticated,
+        IsParticipantOfConversation,
+        IsMessageOwnerOrParticipant,
+    ]
+    pagination_class = CustomMessagePagination
+    filter_backends = [DjangoFilterBackend]
     filterset_class = MessageFilter
 
-    def get_serializer_class(self):
-        if self.action == "create":
-            return MessageCreateSerializer
-        return MessageSerializer
-
     def get_queryset(self):
-        # Only show messages in conversations the user is part of
-        queryset = self.queryset.filter(
+        queryset = Message.objects.filter(
             conversation__participants=self.request.user
-        ).order_by("-sent_at")
-        return queryset.select_related("sender", "conversation")
+        ).select_related('conversation', 'sender', 'recipient').order_by('-timestamp')
 
-    def perform_create(self, serializer):
-        # Automatically set the sender to the current user
-        serializer.save(sender=self.request.user)
+        # Apply additional filtering if needed
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        conversation_id = request.data.get("conversation")
+        if not conversation_id:
+            return Response(
+                {"detail": "Conversation ID is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            conversation = Conversation.objects.get(pk=conversation_id)
+            if not conversation.participants.filter(pk=request.user.pk).exists():
+                return Response(
+                    {"detail": "You are not a participant of this conversation"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        except Conversation.DoesNotExist:
+            raise Http404("Conversation does not exist")
+
+        return super().create(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.sender != request.user:
+                return Response(
+                    {"detail": "You can only delete your own messages"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            return super().destroy(request, *args, **kwargs)
+        except Http404:
+            return Response(
+                {"detail": "Message not found"}, status=status.HTTP_404_NOT_FOUND
+            )
