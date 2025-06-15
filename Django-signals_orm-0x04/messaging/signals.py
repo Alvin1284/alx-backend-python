@@ -12,3 +12,10 @@ def create_message_notification(sender, instance, created, **kwargs):
             user=instance.receiver,
             message=instance
         )
+        
+@receiver(post_delete, sender=User)
+def delete_related_data(sender, instance, **kwargs):
+    Message.objects.filter(sender=instance).delete()
+    Message.objects.filter(receiver=instance).delete()
+    Notification.objects.filter(user=instance).delete()
+    MessageHistory.objects.filter(edited_by=instance).delete()
