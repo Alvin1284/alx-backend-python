@@ -15,11 +15,39 @@ class Message(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
-    
+
     # New field for threading
     edited = models.BooleanField(default=False)
     edited_at = models.DateTimeField(null=True, blank=True)
-    edited_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='edited_messages')
+    edited_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="edited_messages",
+    )
+
+    class Meta:
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["sender", "receiver"]),
+            models.Index(fields=["parent_message"]),
+        ]
+
+    def __str__(self):
+        return f"{self.sender} → {self.receiver}: {self.content[:30]}"
+
+    def get_thread(self):
+        """Recursively get all messages in this thread"""
+        messages = []
+        self._get_thread_recursive(messages)
+        return messages
+
+    def _get_thread_recursive(self, messages):
+        """Helper method for recursive thread collection"""
+        messages.append(self)
+        for reply in self.replies.all():
+            reply._get_thread_recursive(messages)
 
     def __str__(self):
         return f"Message from {self.sender} to {self.receiver}"
