@@ -15,6 +15,9 @@ class Message(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    parent_message = models.ForeignKey(
+        "self", null=True, blank=True, related_name="replies", on_delete=models.SET_NULL
+    )
 
     # New field for threading
     edited = models.BooleanField(default=False)
@@ -61,8 +64,9 @@ class Message(models.Model):
 
     def mark_as_read(self):
         """Mark message as read"""
-        self.is_read = True
-        self.save(update_fields=["is_read"])
+        if not self.is_read:
+            self.is_read = True
+            self.save(update_fields=["is_read"])
 
 
 class Notification(models.Model):

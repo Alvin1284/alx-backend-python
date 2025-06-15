@@ -72,7 +72,10 @@ def inbox(request):
 
 @login_required
 def unread_messages(request):
-    """View showing only unread messages with optimized queries"""
+    """
+    View showing only unread messages using the custom manager
+    with optimized query using only() for specific fields
+    """
     unread_messages = Message.unread.for_user(request.user)
 
     return render(
@@ -82,12 +85,28 @@ def unread_messages(request):
 
 @login_required
 def view_message(request, message_id):
-    """View a message and mark it as read"""
-    message = Message.objects.select_related("sender").get(
-        id=message_id, receiver=request.user
+    """
+    View a message and mark it as read
+    Uses only() to optimize the query
+    """
+    message = get_object_or_404(
+        Message.objects.select_related("sender").only(
+            "id", "content", "timestamp", "is_read", "sender__username", "sender__id"
+        ),
+        id=message_id,
+        receiver=request.user,
     )
 
-    if not message.is_read:
-        message.mark_as_read()
+    message.mark_as_read()
 
     return render(request, "messaging/view.html", {"message": message})
+
+
+@login_required
+def mark_all_read(request):
+    """
+    Mark all unread messages as read for the current user
+    Uses update() for efficient bulk operation
+    """
+    Message.unread.for_user(request.user).update(is_read=True)
+    return redirect("unread_messages")
