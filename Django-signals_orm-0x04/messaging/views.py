@@ -110,3 +110,28 @@ def mark_all_read(request):
     """
     Message.unread.unread_for_user(request.user).update(is_read=True)
     return redirect("unread_messages")
+
+
+# For function-based view
+@login_required
+@cache_page(60)  # Cache for 60 seconds
+def conversation_thread(request, message_id):
+    """View a complete conversation thread with caching"""
+    base_message = get_object_or_404(
+        Message.objects.select_related("sender", "receiver").prefetch_related(
+            "replies"
+        ),
+        id=message_id,
+        receiver=request.user,
+    )
+
+    thread_messages = base_message.get_thread()
+
+    return render(
+        request,
+        "messaging/thread.html",
+        {
+            "base_message": base_message,
+            "thread_messages": sorted(thread_messages, key=lambda x: x.timestamp),
+        },
+    )
