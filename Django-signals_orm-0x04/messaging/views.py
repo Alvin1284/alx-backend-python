@@ -108,5 +108,5 @@ def mark_all_read(request):
     Mark all unread messages as read for the current user
     Uses update() for efficient bulk operation
     """
-    Message.unread.for_user(request.user).update(is_read=True)
+    Message.unread.unread_for_user(request.user).update(is_read=True)
     return redirect("unread_messages")
