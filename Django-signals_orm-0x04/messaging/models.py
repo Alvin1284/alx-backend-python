@@ -27,11 +27,18 @@ class Message(models.Model):
         related_name="edited_messages",
     )
 
+    # Default manager
+    objects = models.Manager()
+
+    # Custom manager for unread messages
+    unread = UnreadMessagesManager()
+
     class Meta:
         ordering = ["-timestamp"]
         indexes = [
             models.Index(fields=["sender", "receiver"]),
             models.Index(fields=["parent_message"]),
+            models.Index(fields=["receiver", "is_read"]),
         ]
 
     def __str__(self):
@@ -51,6 +58,11 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender} to {self.receiver}"
+
+    def mark_as_read(self):
+        """Mark message as read"""
+        self.is_read = True
+        self.save(update_fields=["is_read"])
 
 
 class Notification(models.Model):

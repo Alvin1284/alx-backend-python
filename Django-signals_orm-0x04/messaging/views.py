@@ -68,3 +68,26 @@ def inbox(request):
     )
 
     return render(request, "messaging/inbox.html", {"threads": threads})
+
+
+@login_required
+def unread_messages(request):
+    """View showing only unread messages with optimized queries"""
+    unread_messages = Message.unread.for_user(request.user)
+
+    return render(
+        request, "messaging/unread.html", {"unread_messages": unread_messages}
+    )
+
+
+@login_required
+def view_message(request, message_id):
+    """View a message and mark it as read"""
+    message = Message.objects.select_related("sender").get(
+        id=message_id, receiver=request.user
+    )
+
+    if not message.is_read:
+        message.mark_as_read()
+
+    return render(request, "messaging/view.html", {"message": message})
