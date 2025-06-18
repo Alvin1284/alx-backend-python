@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters import rest_framework as filters
 from .models import Conversation, Message
-from .permissions import IsParticipantOfConversation, IsMessageOwnerOrParticipant, IsParticipantOrSender, IsAuthenticated
+from .permissions import IsParticipantOfConversation, IsMessageOwnerOrParticipant
 from django.http import Http404
 
 from .serializers import (
@@ -12,14 +12,14 @@ from .serializers import (
     ConversationCreateSerializer,
     MessageSerializer,
 )
-from .filters import MessageFilter, ConversationFilter
+from .filters import MessageFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from chats.pagination import MessagePagination
 
 
 class MessageFilter(filters.FilterSet):
     conversation = filters.UUIDFilter(field_name="conversation__conversation_id")
-    sender = filters.UUIDFilter(field_name="sender__user_id")
+    sender = filters.UUIDFilter(field_name="sender__id")
     read = filters.BooleanFilter(field_name="read")
     after_date = filters.DateTimeFilter(field_name="sent_at", lookup_expr="gte")
     before_date = filters.DateTimeFilter(field_name="sent_at", lookup_expr="lte")
@@ -30,7 +30,7 @@ class MessageFilter(filters.FilterSet):
 
 
 class ConversationFilter(filters.FilterSet):
-    participant = filters.UUIDFilter(field_name="participants__user_id")
+    participant = filters.UUIDFilter(field_name="participants__id")
     after_date = filters.DateTimeFilter(field_name="created_at", lookup_expr="gte")
     before_date = filters.DateTimeFilter(field_name="created_at", lookup_expr="lte")
     has_unread = filters.BooleanFilter(method="filter_has_unread")
@@ -51,7 +51,7 @@ class ConversationFilter(filters.FilterSet):
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
-    permission_classes = [permissions.IsAuthenticated, IsParticipantOrSender]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = ConversationFilter
 
@@ -102,7 +102,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     permission_classes = [
-        IsAuthenticated,
+        
         IsParticipantOfConversation,
         IsMessageOwnerOrParticipant,
     ]

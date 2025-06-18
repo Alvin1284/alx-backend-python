@@ -10,9 +10,9 @@ class User(AbstractUser):
     Custom user model extending Django's AbstractUser with additional fields.
     """
 
-    user_id = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False, unique=True
-    )
+    id = models.AutoField(primary_key=True)
+
+
     email = models.EmailField(
         _("email address"), unique=True, help_text=_("User's email address")
     )
