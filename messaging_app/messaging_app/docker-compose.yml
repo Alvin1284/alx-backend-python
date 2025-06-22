@@ -6,7 +6,7 @@ services:
     restart: always
     env_file: .env
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_DB: ${MYSQL_DB}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -22,7 +22,7 @@ services:
     env_file: .env
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             python3 manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     depends_on:
